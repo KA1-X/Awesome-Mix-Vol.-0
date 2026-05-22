@@ -1,0 +1,2242 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Awesome Mix Vol. 0</title>
+<style>
+  :root {
+    --bg-0:#08070d;
+    --bg-1:#15101f;
+    --ink:#f4eee4;
+    --ink-dim:#8a8298;
+    --perfect:#ffd866;
+    --perfect-hot:#fff3a8;
+    --good:#7df9c4;
+    --ok:#74b9ff;
+    --bad:#ff6b8a;
+    --beat:#c39bff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(ellipse at 50% 30%, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--ink);
+    font-family: 'Courier New', ui-monospace, monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+  body { display:flex; align-items:center; justify-content:center; }
+
+  /* Stage */
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    overflow: hidden;
+  }
+  /* Subtle grid backdrop */
+  #stage::before {
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events:none;
+  }
+  /* Vignette */
+  #stage::after {
+    content:"";
+    position:absolute; inset:0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events:none;
+  }
+
+  /* Screen-shake wrapper applied via JS adding classes */
+  #shaker {
+    position:absolute; inset:0;
+    transform-origin:center;
+    will-change: transform, filter;
+  }
+  .shake-tiny  { animation: shake-tiny  120ms ease-out; }
+  .shake-small { animation: shake-small 180ms ease-out; }
+  .shake-big   { animation: shake-big   260ms ease-out; }
+  @keyframes shake-tiny {
+    0%,100% { transform: translate(0,0); }
+    25% { transform: translate(-1px, 1px); }
+    50% { transform: translate( 1px,-1px); }
+    75% { transform: translate(-1px,-1px); }
+  }
+  @keyframes shake-small {
+    0%,100% { transform: translate(0,0); }
+    20% { transform: translate(-4px, 2px); }
+    40% { transform: translate( 4px,-2px); }
+    60% { transform: translate(-3px,-3px); }
+    80% { transform: translate( 2px, 3px); }
+  }
+  @keyframes shake-big {
+    0%,100% { transform: translate(0,0) scale(1); }
+    15% { transform: translate(-8px, 4px) scale(1.012); }
+    30% { transform: translate( 7px,-5px) scale(1.012); }
+    45% { transform: translate(-6px,-6px) scale(1.008); }
+    60% { transform: translate( 5px, 6px) scale(1.008); }
+    80% { transform: translate(-2px, 1px) scale(1.003); }
+  }
+  /* Chromatic aberration burst on big PERFECT streaks */
+  .chroma {
+    animation: chroma 220ms ease-out;
+  }
+  @keyframes chroma {
+    0%   { filter: none; }
+    30%  { filter: drop-shadow(2px 0 0 rgba(255,80,120,0.55)) drop-shadow(-2px 0 0 rgba(80,200,255,0.55)); }
+    100% { filter: none; }
+  }
+
+  /* Beat-pulse: full-screen radial flash, masked to PERFECT color */
+  #pulse {
+    position:absolute; inset:0;
+    pointer-events:none;
+    background: radial-gradient(circle at var(--px,50%) var(--py,50%),
+                  rgba(255,216,102,0.55) 0%,
+                  rgba(255,216,102,0.18) 20%,
+                  rgba(255,216,102,0) 55%);
+    opacity:0;
+    mix-blend-mode: screen;
+  }
+  .pulse-go { animation: pulse-go 360ms ease-out; }
+  @keyframes pulse-go {
+    0%   { opacity: 0;   }
+    15%  { opacity: 1;   }
+    100% { opacity: 0;   }
+  }
+
+  /* Crosshair */
+  #crosshair {
+    position:absolute; width:36px; height:36px; pointer-events:none;
+    transform: translate(-50%,-50%);
+    z-index: 8;
+  }
+  #crosshair::before, #crosshair::after {
+    content:""; position:absolute; background: var(--ink);
+  }
+  #crosshair::before { left:50%; top:0; bottom:0; width:1px; transform:translateX(-50%); }
+  #crosshair::after  { top:50%; left:0; right:0; height:1px; transform:translateY(-50%); }
+
+  /* Targets — pulse to the beat (animation-duration is set per-target to beatMs) */
+  .target {
+    position:absolute;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%) scale(1);
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,0.55),
+      0 0 30px rgba(195,155,255,0.35),
+      inset 0 0 20px rgba(255,255,255,0.25);
+    background: radial-gradient(circle at 35% 30%, #ffffff 0%, var(--beat) 35%, #6a3ec2 100%);
+    pointer-events:none;
+    will-change: transform, opacity, filter;
+  }
+  .target.beat { animation: target-beat var(--beatms, 431ms) ease-out infinite; }
+  /* Pronounced zoom-in on the downbeat, slow ease-out — every cycle "breathes" with the music. */
+  @keyframes target-beat {
+    0%   { transform: translate(-50%,-50%) scale(1.30);
+           box-shadow: 0 0 0 3px rgba(255,255,255,0.95), 0 0 60px rgba(195,155,255,0.85), inset 0 0 28px rgba(255,255,255,0.55); }
+    35%  { transform: translate(-50%,-50%) scale(0.92);
+           box-shadow: 0 0 0 2px rgba(255,255,255,0.45), 0 0 22px rgba(195,155,255,0.25), inset 0 0 18px rgba(255,255,255,0.20); }
+    100% { transform: translate(-50%,-50%) scale(1.0);
+           box-shadow: 0 0 0 2px rgba(255,255,255,0.55), 0 0 30px rgba(195,155,255,0.35), inset 0 0 20px rgba(255,255,255,0.25); }
+  }
+  /* Damage flash — applied for ~120ms when a non-PERFECT shot lands */
+  .target.hit-flash { animation: target-hitflash 140ms ease-out; }
+  @keyframes target-hitflash {
+    0%   { filter: brightness(2.4) saturate(0.4); }
+    100% { filter: none; }
+  }
+  /* Death — used when HP reaches zero on PERFECT (or last partial blow) */
+  .target.dying { animation: target-die 260ms ease-out forwards; }
+  @keyframes target-die {
+    0%   { opacity:1; transform: translate(-50%,-50%) scale(1.0); }
+    40%  { opacity:1; transform: translate(-50%,-50%) scale(1.55); filter: brightness(2); }
+    100% { opacity:0; transform: translate(-50%,-50%) scale(2.6); filter: brightness(1.5); }
+  }
+  /* HP ring — drawn as a conic gradient that shrinks as HP drops */
+  .hp-ring {
+    position:absolute;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+    background:
+      conic-gradient(var(--perfect) calc(var(--hp,100) * 1%), rgba(255,255,255,0.08) 0);
+    -webkit-mask: radial-gradient(circle, transparent 38px, #000 40px, #000 47px, transparent 49px);
+            mask: radial-gradient(circle, transparent 38px, #000 40px, #000 47px, transparent 49px);
+    transition: background 180ms ease-out;
+    z-index: 6;
+  }
+  /* Target rim — a static thin white ring at the exact size the beat-ring
+     contracts to (scale 1.0 of .beat-ring = 140px). Acts as the visual
+     "target line" or judgment line: the moving beat-ring lines up with this
+     rim precisely on each beat, giving the player a fixed reference to aim
+     their timing at. */
+  .target-rim {
+    position: absolute;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 0 6px rgba(255, 255, 255, 0.18),
+      inset 0 0 6px rgba(255, 255, 255, 0.10);
+    z-index: 3;
+  }
+  /* Beat ring — a rhythmic indicator that contracts toward each bubble in time
+     with the music. It starts far out (~2× radius) and shrinks to ~1× exactly
+     on the next beat, then snaps back outward to start the next contraction.
+     Players can read this as "shoot when the ring touches the bubble". */
+  .beat-ring {
+    position: absolute;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%) scale(2);
+    pointer-events: none;
+    border: 2px solid rgba(195, 155, 255, 0.55);
+    box-shadow:
+      0 0 14px rgba(195, 155, 255, 0.25),
+      inset 0 0 14px rgba(195, 155, 255, 0.12);
+    z-index: 4;
+    will-change: transform, opacity, border-color;
+    animation: beat-ring var(--beatms, 431ms) linear infinite;
+  }
+  @keyframes beat-ring {
+    /* 0% = the beat just landed: ring is tight to the bubble, bright. */
+    0% {
+      transform: translate(-50%,-50%) scale(1.0);
+      opacity: 1;
+      border-color: rgba(255, 216, 102, 0.95);
+      box-shadow:
+        0 0 22px rgba(255, 216, 102, 0.55),
+        inset 0 0 14px rgba(255, 216, 102, 0.35);
+      border-width: 3px;
+    }
+    /* 12% — quick fade as the bubble takes the spotlight */
+    12% {
+      transform: translate(-50%,-50%) scale(1.05);
+      opacity: 0.45;
+      border-color: rgba(195, 155, 255, 0.35);
+      border-width: 2px;
+    }
+    /* 18% — snap back outward to start a fresh contraction (instant teleport,
+       not a smooth zoom, so the player isn't confused by which direction it's
+       moving). */
+    18% {
+      transform: translate(-50%,-50%) scale(2.2);
+      opacity: 0;
+      border-color: rgba(195, 155, 255, 0.0);
+    }
+    /* 22% — appears again at the outer edge, dim */
+    22% {
+      transform: translate(-50%,-50%) scale(2.15);
+      opacity: 0.35;
+      border-color: rgba(195, 155, 255, 0.5);
+    }
+    /* The long contraction toward the next beat */
+    100% {
+      transform: translate(-50%,-50%) scale(1.02);
+      opacity: 0.95;
+      border-color: rgba(255, 216, 102, 0.85);
+      border-width: 3px;
+    }
+  }
+
+  /* Floating judgment text at cursor */
+  .judge {
+    position:absolute;
+    transform: translate(-50%,-50%);
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    pointer-events: none;
+    will-change: transform, opacity;
+    z-index: 12;
+  }
+  .judge.perfect {
+    color: var(--perfect);
+    font-size: 56px;
+    text-shadow:
+      0 0 8px var(--perfect),
+      0 0 18px var(--perfect-hot),
+      0 0 32px rgba(255,216,102,0.6),
+      0 2px 0 rgba(0,0,0,0.4);
+    animation: judge-perfect 800ms cubic-bezier(.18,1.2,.3,1) forwards;
+  }
+  .judge.bonus {
+    /* Streak-4 milestone — same celebratory feel as PERFECT but with a pinkish
+       hot edge to mark it as awarded rather than earned. */
+    color: #ffb8e6;
+    font-size: 60px;
+    text-shadow:
+      0 0 10px #ff7fcf,
+      0 0 22px #ffd866,
+      0 0 38px rgba(255,127,207,0.65),
+      0 2px 0 rgba(0,0,0,0.4);
+    animation: judge-perfect 880ms cubic-bezier(.18,1.2,.3,1) forwards;
+  }
+  .judge.good   { color: var(--good); font-size: 38px; text-shadow:0 0 10px var(--good), 0 2px 0 rgba(0,0,0,0.4); animation: judge-pop 700ms ease-out forwards; }
+  .judge.ok     { color: var(--ok);   font-size: 32px; text-shadow:0 0 8px var(--ok),   0 2px 0 rgba(0,0,0,0.4); animation: judge-pop 700ms ease-out forwards; }
+  .judge.bad    { color: var(--bad);  font-size: 26px; text-shadow:0 0 8px var(--bad),  0 2px 0 rgba(0,0,0,0.4); animation: judge-pop 700ms ease-out forwards; }
+  @keyframes judge-perfect {
+    0%   { transform: translate(-50%,-50%) scale(0.4) rotate(-6deg); opacity: 0; }
+    18%  { transform: translate(-50%,-50%) scale(1.35) rotate(2deg); opacity: 1; }
+    35%  { transform: translate(-50%,-70%) scale(1.10) rotate(-1deg); opacity: 1; }
+    100% { transform: translate(-50%,-150%) scale(1.05) rotate(0deg);  opacity: 0; }
+  }
+  @keyframes judge-pop {
+    0%   { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
+    20%  { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%,-130%) scale(1.0); opacity: 0; }
+  }
+
+  /* Pending shot — charging ring that grows from click point until the next beat,
+     then bursts. width/height set inline; we animate via 'transition' for live retargeting. */
+  .pending {
+    position:absolute;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%) scale(1);
+    border: 2px solid rgba(255,255,255,0.85);
+    box-shadow: 0 0 12px rgba(255,255,255,0.4);
+    pointer-events:none;
+    will-change: transform, opacity;
+    z-index: 9;
+  }
+
+  /* Perfect ring burst */
+  .ring {
+    position:absolute;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    border: 3px solid var(--perfect);
+    pointer-events: none;
+    will-change: transform, opacity;
+    z-index: 11;
+  }
+  .ring.go { animation: ring 500ms ease-out forwards; }
+  @keyframes ring {
+    0%   { transform: translate(-50%,-50%) scale(0.4); opacity: 1; border-width: 6px; }
+    100% { transform: translate(-50%,-50%) scale(5.2); opacity: 0; border-width: 1px; }
+  }
+  .ring.inner { border-color: var(--perfect-hot); }
+  .ring.inner.go { animation-duration: 380ms; }
+
+  /* Spark particles */
+  .spark {
+    position:absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--perfect);
+    box-shadow: 0 0 10px var(--perfect-hot), 0 0 20px var(--perfect);
+    pointer-events: none;
+    will-change: transform, opacity;
+    z-index: 11;
+  }
+
+  /* HUD */
+  #hud {
+    position:absolute;
+    top: 22px; left: 24px; right: 24px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .hud-block { background: rgba(8,7,13,0.55); backdrop-filter: blur(8px); padding:10px 14px; border:1px solid rgba(255,255,255,0.08); border-radius:6px; }
+  .hud-label { font-size: 10px; color: var(--ink-dim); letter-spacing: 0.18em; text-transform: uppercase; }
+  .hud-value { font-family:'Impact', 'Arial Black', sans-serif; font-size: 32px; line-height: 1; margin-top: 4px; }
+  #combo-value.streak { color: var(--perfect); text-shadow: 0 0 12px var(--perfect-hot); }
+
+  /* Burst HUD: 5 pips + a label that turns gold when ready */
+  .hud-burst { min-width: 140px; }
+  /* Stock row — 3 big orbs showing banked, ready-to-fire bursts. */
+  .burst-stocks { display:flex; gap:8px; margin-top: 6px; justify-content:center; }
+  .burst-stocks .stock {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: background 160ms, box-shadow 160ms, transform 160ms;
+  }
+  .burst-stocks .stock.full {
+    background: radial-gradient(circle at 30% 30%, var(--perfect-hot) 0%, var(--perfect) 60%, #b8860b 100%);
+    border-color: var(--perfect-hot);
+    box-shadow:
+      0 0 10px var(--perfect-hot),
+      0 0 22px rgba(255,216,102,0.65),
+      inset 0 0 6px rgba(255,255,255,0.6);
+  }
+  /* Progress pips — small dots showing the 0..5 in-progress charge */
+  .burst-pips { display:flex; gap:4px; margin-top: 6px; justify-content:center; }
+  .burst-pips .pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    transition: background 140ms, box-shadow 140ms;
+  }
+  .burst-pips .pip.charged {
+    background: var(--perfect);
+    border-color: var(--perfect-hot);
+    box-shadow: 0 0 6px var(--perfect-hot), 0 0 12px rgba(255,216,102,0.5);
+  }
+  .burst-hint {
+    font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-dim); margin-top: 6px;
+    transition: color 160ms, text-shadow 160ms;
+  }
+  .hud-burst.ready .burst-hint {
+    color: var(--perfect);
+    text-shadow: 0 0 10px var(--perfect-hot);
+    animation: burst-pulse 700ms ease-in-out infinite;
+  }
+  .hud-burst.ready { border-color: rgba(255,216,102,0.55); box-shadow: 0 0 20px rgba(255,216,102,0.25); }
+  .hud-burst.active { border-color: rgba(255,216,102,0.9); box-shadow: 0 0 30px rgba(255,216,102,0.6); }
+  .hud-burst.active .burst-hint { color: var(--perfect-hot); text-shadow: 0 0 14px var(--perfect-hot); }
+  @keyframes burst-pulse {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.55; }
+  }
+
+  /* Beat-bar */
+  #beatbar {
+    position:absolute;
+    bottom: 22px; left: 50%; transform: translateX(-50%);
+    width: min(560px, 70vw);
+    height: 56px;
+    background: rgba(8,7,13,0.6);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow:hidden;
+    z-index: 20;
+    backdrop-filter: blur(6px);
+  }
+  #beatbar::before {
+    /* PERFECT zone */
+    content:""; position:absolute; top:0; bottom:0;
+    left: calc(50% - var(--perfect-w,7%)); width: calc(var(--perfect-w,7%) * 2);
+    background: linear-gradient(180deg, rgba(255,216,102,0.18), rgba(255,216,102,0.32));
+    border-left:1px solid rgba(255,216,102,0.55);
+    border-right:1px solid rgba(255,216,102,0.55);
+  }
+  #beatbar::after {
+    /* center line */
+    content:""; position:absolute; top:0; bottom:0; left:50%; width:1px;
+    background: rgba(255,255,255,0.6);
+  }
+  .marker {
+    position:absolute; top:8px; bottom:8px; width:3px;
+    background: var(--ink);
+    transform: translateX(-50%);
+    will-change: left, opacity;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(255,255,255,0.4);
+  }
+  .marker.hit { animation: marker-hit 250ms ease-out forwards; }
+  @keyframes marker-hit {
+    0% { opacity:1; }
+    100% { opacity:0; transform: translateX(-50%) scaleY(1.6); }
+  }
+
+  /* Overlay (start / settings) */
+  #overlay {
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,127,80,0.10) 0%, transparent 40%),
+      radial-gradient(ellipse at 70% 80%, rgba(195,155,255,0.10) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 40%, rgba(34,22,55,0.94) 0%, rgba(8,7,13,0.98) 70%);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 50;
+    backdrop-filter: blur(3px);
+  }
+  /* Subtle moving grain over the overlay — adds analog warmth */
+  #overlay::before {
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events:none;
+    opacity: 0.6;
+  }
+  .panel {
+    position:relative;
+    width: min(580px, 94vw);
+    padding: 30px 38px 28px;
+    background: linear-gradient(180deg, rgba(22,16,34,0.92) 0%, rgba(12,9,20,0.94) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    box-shadow:
+      0 40px 90px rgba(0,0,0,0.65),
+      0 0 0 1px rgba(255,255,255,0.03),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    animation: panel-in 360ms cubic-bezier(.2,.9,.3,1) both;
+  }
+  @keyframes panel-in {
+    0%   { opacity: 0; transform: translateY(14px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0)    scale(1); }
+  }
+
+  /* Language toggle — top-right corner of the panel */
+  .lang-toggle {
+    position: absolute; top: 14px; right: 16px;
+    display: flex; gap: 0;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 4px;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    font-size: 10px; letter-spacing: 0.14em;
+  }
+  .lang-toggle button {
+    appearance: none;
+    background: transparent;
+    color: var(--ink-dim);
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+  }
+  .lang-toggle button:hover { color: var(--ink); }
+  .lang-toggle button.on {
+    background: rgba(255,216,102,0.16);
+    color: var(--perfect);
+    text-shadow: 0 0 8px rgba(255,216,102,0.4);
+  }
+
+  /* Title block — cassette tape decoration + Awesome Mix Vol. 0 */
+  .title-wrap {
+    display:flex; align-items:center; gap: 16px;
+    margin-bottom: 4px;
+  }
+  .cassette {
+    flex: 0 0 auto;
+    width: 56px; height: 38px;
+    position: relative;
+  }
+  .cassette svg { width: 100%; height: 100%; display: block; }
+  /* Animated reels */
+  .cassette .reel {
+    transform-origin: center;
+    animation: reel-spin 2.4s linear infinite;
+  }
+  @keyframes reel-spin {
+    0%   { transform: rotate(0deg);   }
+    100% { transform: rotate(360deg); }
+  }
+  .panel h1 {
+    margin:0;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 40px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    background: linear-gradient(180deg, #fff8dc 0%, var(--perfect) 45%, #ff8c42 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 30px rgba(255,140,66,0.25);
+    white-space: nowrap;
+  }
+  .panel h1 .vol { font-size: 32px; opacity: 0.85; }
+  .panel .sub {
+    color: var(--ink-dim);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+    padding-left: 72px;  /* line up with title text past the cassette */
+  }
+
+  /* Settings card — visually grouped section */
+  .settings-card {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 16px 18px 6px;
+    margin-bottom: 18px;
+  }
+  .row { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .row:last-child { margin-bottom: 4px; }
+  .row label {
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .row .ctrl { display:flex; gap:10px; align-items:center; }
+
+  /* File input — stylized */
+  .row input[type="file"]::file-selector-button,
+  .row .button {
+    appearance: none;
+    background: rgba(255,255,255,0.05);
+    color: var(--ink);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 7px 13px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .row input[type="file"]::file-selector-button:hover,
+  .row .button:hover {
+    background: rgba(255,216,102,0.12);
+    border-color: rgba(255,216,102,0.5);
+    color: var(--perfect);
+  }
+  .row input[type="file"] { color: var(--ink-dim); font-size: 11px; }
+
+  /* Number / text input */
+  .row input[type="number"], .row input[type="text"] {
+    appearance: none;
+    background: rgba(0,0,0,0.5);
+    color: var(--ink);
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-family: inherit; font-size: 14px;
+    width: 80px;
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  .row input[type="number"]:focus, .row input[type="text"]:focus {
+    outline: none;
+    border-color: rgba(255,216,102,0.55);
+    box-shadow: 0 0 0 3px rgba(255,216,102,0.12);
+  }
+
+  /* Custom range sliders — golden track + thumb */
+  .row input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 1;
+    height: 6px;
+    background: linear-gradient(90deg, rgba(255,216,102,0.55) 0%, rgba(255,216,102,0.25) 100%);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff8dc 0%, var(--perfect) 65%, #b8860b 100%);
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 12px rgba(255,216,102,0.5);
+    cursor: grab;
+    transition: transform 100ms;
+  }
+  .row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .row input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
+  .row input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff8dc 0%, var(--perfect) 65%, #b8860b 100%);
+    border: 1px solid rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 12px rgba(255,216,102,0.5);
+    cursor: grab;
+  }
+  .row input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: linear-gradient(90deg, rgba(255,216,102,0.55) 0%, rgba(255,216,102,0.25) 100%);
+    border-radius: 3px;
+  }
+
+  .row .out {
+    color: var(--perfect);
+    font-family:'Impact','Arial Black',sans-serif;
+    font-size: 16px;
+    min-width: 70px;
+    text-align: right;
+    text-shadow: 0 0 10px rgba(255,216,102,0.35);
+  }
+  .filename { color: var(--ink); font-size: 11px; opacity: 0.85; flex: 1; }
+
+  .start {
+    width: 100%;
+    background: linear-gradient(180deg, #fff8dc 0%, var(--perfect) 35%, #ff8c42 100%);
+    color: #1a1206;
+    border: none;
+    padding: 15px;
+    border-radius: 6px;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.20em;
+    cursor: pointer;
+    margin-top: 4px;
+    box-shadow:
+      0 10px 24px rgba(255,140,66,0.30),
+      0 0 0 1px rgba(0,0,0,0.4) inset,
+      inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: transform 80ms, box-shadow 160ms, filter 120ms;
+    position: relative;
+  }
+  .start:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 30px rgba(255,140,66,0.45),
+      0 0 0 1px rgba(0,0,0,0.4) inset,
+      inset 0 1px 0 rgba(255,255,255,0.5);
+    filter: brightness(1.05);
+  }
+  .start:active { transform: translateY(0); }
+  .start:disabled { opacity: 0.5; cursor: wait; }
+
+  .hint {
+    color: var(--ink-dim);
+    font-size: 11px;
+    margin-top: 16px;
+    line-height: 1.65;
+    letter-spacing: 0.04em;
+  }
+  .hint b { color: var(--perfect); font-weight: 700; }
+  .legend { display:flex; gap:6px; flex-wrap:wrap; margin-top: 14px; }
+  .legend span {
+    font-size: 10px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    border: 1px solid currentColor;
+  }
+
+  /* Pause / End */
+  .small-btn {
+    position:absolute; top: 22px; left: 50%; transform: translateX(-50%);
+    background: rgba(8,7,13,0.55); backdrop-filter: blur(8px);
+    color: var(--ink-dim); border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 16px; border-radius: 4px;
+    font-family: inherit; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; z-index: 21;
+  }
+  .small-btn:hover { color: var(--ink); border-color: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="shaker">
+    <div id="pulse"></div>
+    <div id="crosshair"></div>
+    <div id="effects"></div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-label" data-i18n="hud.score">Score</div>
+      <div class="hud-value" id="score-value">0</div>
+    </div>
+    <div class="hud-block" style="text-align:center;">
+      <div class="hud-label" data-i18n="hud.combo">Combo</div>
+      <div class="hud-value" id="combo-value">0</div>
+    </div>
+    <div class="hud-block hud-burst" id="burst-block" style="text-align:center;">
+      <div class="hud-label" data-i18n="hud.burst">Burst</div>
+      <div class="burst-stocks" id="burst-stocks">
+        <span class="stock"></span><span class="stock"></span><span class="stock"></span>
+      </div>
+      <div class="burst-pips" id="burst-pips">
+        <span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span>
+      </div>
+      <div class="burst-hint" id="burst-hint">RIGHT-CLICK</div>
+    </div>
+    <div class="hud-block" style="text-align:right;">
+      <div class="hud-label" data-i18n="hud.best">Best Streak</div>
+      <div class="hud-value" id="best-value">0</div>
+    </div>
+  </div>
+
+  <button id="reset-btn" class="small-btn" style="display:none;" data-i18n="stop">⏹ Stop</button>
+
+  <div id="beatbar"></div>
+
+  <div id="overlay">
+    <div class="panel">
+      <div class="lang-toggle" id="lang-toggle">
+        <button data-lang="en" class="on">EN</button>
+        <button data-lang="zh">中文</button>
+      </div>
+
+      <div class="title-wrap">
+        <div class="cassette" aria-hidden="true">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg">
+            <!-- shell -->
+            <rect x="1" y="1" width="54" height="36" rx="4"
+                  fill="rgba(20,14,30,0.9)" stroke="rgba(255,216,102,0.45)" stroke-width="1"/>
+            <!-- label area -->
+            <rect x="6" y="5" width="44" height="14" rx="1.5"
+                  fill="rgba(255,216,102,0.10)" stroke="rgba(255,216,102,0.30)" stroke-width="0.5"/>
+            <!-- reel windows -->
+            <circle cx="17" cy="26" r="6.5" fill="rgba(0,0,0,0.7)" stroke="rgba(255,216,102,0.35)" stroke-width="0.6"/>
+            <circle cx="39" cy="26" r="6.5" fill="rgba(0,0,0,0.7)" stroke="rgba(255,216,102,0.35)" stroke-width="0.6"/>
+            <!-- spinning reels (gear-like spokes) -->
+            <g class="reel" style="transform-origin:17px 26px;">
+              <circle cx="17" cy="26" r="2.2" fill="rgba(255,216,102,0.9)"/>
+              <rect x="16.4" y="20.5" width="1.2" height="11" fill="rgba(255,216,102,0.55)"/>
+              <rect x="11.5" y="25.4" width="11" height="1.2" fill="rgba(255,216,102,0.55)"/>
+              <rect x="16.4" y="20.5" width="1.2" height="11" transform="rotate(45 17 26)" fill="rgba(255,216,102,0.4)"/>
+              <rect x="16.4" y="20.5" width="1.2" height="11" transform="rotate(-45 17 26)" fill="rgba(255,216,102,0.4)"/>
+            </g>
+            <g class="reel" style="transform-origin:39px 26px; animation-delay:-1.2s;">
+              <circle cx="39" cy="26" r="2.2" fill="rgba(255,216,102,0.9)"/>
+              <rect x="38.4" y="20.5" width="1.2" height="11" fill="rgba(255,216,102,0.55)"/>
+              <rect x="33.5" y="25.4" width="11" height="1.2" fill="rgba(255,216,102,0.55)"/>
+              <rect x="38.4" y="20.5" width="1.2" height="11" transform="rotate(45 39 26)" fill="rgba(255,216,102,0.4)"/>
+              <rect x="38.4" y="20.5" width="1.2" height="11" transform="rotate(-45 39 26)" fill="rgba(255,216,102,0.4)"/>
+            </g>
+          </svg>
+        </div>
+        <h1>AWESOME MIX <span class="vol">VOL. 0</span></h1>
+      </div>
+      <div class="sub" data-i18n="subtitle">A RHYTHM SHOOTER · CLICK ON THE BEAT</div>
+
+      <div class="settings-card">
+        <div class="row">
+          <label data-i18n="label.song">Song (mp3 / wav / ogg / m4a)</label>
+          <div class="ctrl">
+            <input type="file" id="file-input" accept="audio/*" />
+            <span class="filename" id="file-label">— built-in drum loop —</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label data-i18n="label.bpm">BPM</label>
+          <div class="ctrl">
+            <input type="number" id="bpm-input" value="139" min="40" max="240" step="1" />
+            <input type="range" id="bpm-range" value="139" min="40" max="240" step="1" />
+            <span class="out" id="bpm-out">139</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label data-i18n="label.offset">First-beat offset (ms) — slide while playing if hits feel early/late</label>
+          <div class="ctrl">
+            <input type="range" id="off-range" value="0" min="-1000" max="3000" step="5" />
+            <span class="out" id="off-out">0</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <label data-i18n="label.window">PERFECT window</label>
+          <div class="ctrl">
+            <input type="range" id="win-range" value="90" min="30" max="150" step="5" />
+            <span class="out" id="win-out">±90ms</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="start" id="start-btn" data-i18n="start">▶ START</button>
+
+      <div class="legend">
+        <span style="background:rgba(255,216,102,0.18); color:var(--perfect)" data-i18n="legend.perfect">PERFECT — one-shot kill</span>
+        <span style="background:rgba(125,249,196,0.18); color:var(--good)" data-i18n="legend.good">GOOD — 50 dmg</span>
+        <span style="background:rgba(116,185,255,0.18); color:var(--ok)" data-i18n="legend.ok">OK — 25 dmg</span>
+        <span style="background:rgba(255,107,138,0.18); color:var(--bad)" data-i18n="legend.off">OFF — 5 dmg</span>
+      </div>
+
+      <div class="hint" id="hint" data-i18n-html="hint">
+        Left-click bubbles to shoot — PERFECT timing one-shots, off-beat clicks resolve at the next beat. <b>5 PERFECTs in a row</b> banks one BURST stock (max 3 saved); any non-PERFECT click resets the in-progress meter but banked stocks are safe. <b>Right-click</b> to spend one stock — fires 5 auto-PERFECTs as a rapid sixteenth-note roll. If you don't pick a song, a built-in drum machine plays.
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="bgm" loop preload="auto"></audio>
+
+<script>
+(() => {
+  // ----- DOM -----
+  const stage    = document.getElementById('stage');
+  const shaker   = document.getElementById('shaker');
+  const pulseEl  = document.getElementById('pulse');
+  const ch       = document.getElementById('crosshair');
+  const fx       = document.getElementById('effects');
+  const scoreEl  = document.getElementById('score-value');
+  const comboEl  = document.getElementById('combo-value');
+  const bestEl   = document.getElementById('best-value');
+  const burstBlock = document.getElementById('burst-block');
+  const burstPips  = document.getElementById('burst-pips');
+  const burstStocksEl = document.getElementById('burst-stocks');
+  const burstHint  = document.getElementById('burst-hint');
+  const beatbar  = document.getElementById('beatbar');
+  const overlay  = document.getElementById('overlay');
+  const resetBtn = document.getElementById('reset-btn');
+
+  const fileInp  = document.getElementById('file-input');
+  const fileLbl  = document.getElementById('file-label');
+  const bpmInp   = document.getElementById('bpm-input');
+  const bpmRng   = document.getElementById('bpm-range');
+  const bpmOut   = document.getElementById('bpm-out');
+  const offRng   = document.getElementById('off-range');
+  const offOut   = document.getElementById('off-out');
+  const winRng   = document.getElementById('win-range');
+  const winOut   = document.getElementById('win-out');
+  const startBtn = document.getElementById('start-btn');
+  const bgm      = document.getElementById('bgm');
+  const langToggle = document.getElementById('lang-toggle');
+
+  // ----- i18n -----
+  // Two languages supported. Translation keys map to {en, zh} strings.
+  // `data-i18n="key"` sets element.textContent; `data-i18n-html="key"` sets innerHTML
+  // (used for the hint which contains <b> emphasis).
+  const tr = {
+    'subtitle':        { en: 'A RHYTHM SHOOTER · CLICK ON THE BEAT',
+                         zh: '节奏射击游戏 · 卡在拍子上' },
+    'label.song':      { en: 'Song (mp3 / wav / ogg / m4a)',
+                         zh: '歌曲(mp3 / wav / ogg / m4a)' },
+    'label.bpm':       { en: 'BPM',
+                         zh: 'BPM(每分钟拍数)' },
+    'label.offset':    { en: 'First-beat offset (ms) — slide while playing if hits feel early/late',
+                         zh: '首拍偏移(毫秒)— 觉得偏早 / 偏晚时可游戏中实时拖动' },
+    'label.window':    { en: 'PERFECT window',
+                         zh: 'PERFECT 判定窗' },
+    'start':           { en: '▶ START',
+                         zh: '▶ 开始' },
+    'stop':            { en: '⏹ Stop',
+                         zh: '⏹ 停止' },
+    'legend.perfect':  { en: 'PERFECT — one-shot kill',
+                         zh: 'PERFECT — 一击必杀' },
+    'legend.good':     { en: 'GOOD — 50 dmg',
+                         zh: 'GOOD — 50 伤害' },
+    'legend.ok':       { en: 'OK — 25 dmg',
+                         zh: 'OK — 25 伤害' },
+    'legend.off':      { en: 'OFF — 5 dmg',
+                         zh: 'OFF — 5 伤害' },
+    'hint':            { en: 'Left-click bubbles to shoot — PERFECT timing one-shots, off-beat clicks resolve at the next beat. <b>5 PERFECTs in a row</b> banks one BURST stock (max 3 saved); any non-PERFECT click resets the in-progress meter but banked stocks are safe. <b>Right-click</b> to spend one stock — fires 5 auto-PERFECTs as a rapid sixteenth-note roll. If you don\'t pick a song, a built-in drum machine plays.',
+                         zh: '左键射击气泡 — PERFECT 时机一击必杀,不准的点击会在下一拍解算。<b>连续 5 次 PERFECT</b> 可攒一发 BURST 大招(最多保留 3 发);非 PERFECT 的点击只重置进行中的进度,已攒好的大招不会丢失。<b>右键</b>消耗一发大招 — 在下一刻以十六分音符节奏自动打出 5 发 PERFECT。如果不上传歌曲,会使用内置的鼓机循环。' },
+    // HUD labels
+    'hud.score':       { en: 'Score',       zh: '得分' },
+    'hud.combo':       { en: 'Combo',       zh: '连击' },
+    'hud.burst':       { en: 'Burst',       zh: '大招' },
+    'hud.best':        { en: 'Best Streak', zh: '最高连击' },
+    // Burst hint states (dynamic)
+    'burst.active':    { en: 'BURST!',         zh: '大招中!' },
+    'burst.max':       { en: 'MAX · R-CLICK',   zh: '满 · 右键释放' },
+    'burst.ready':     { en: 'READY ▶ R-CLICK', zh: '就绪 ▶ 右键' },
+    'burst.progress':  { en: '{n} / {max}',     zh: '{n} / {max}' },
+    // Dynamic file-label statuses
+    'file.default':    { en: '— built-in drum loop —', zh: '— 内置鼓机循环 —' },
+    'file.analyzing':  { en: '{name} — analyzing…',     zh: '{name} — 分析中…' },
+    'file.detected':   { en: '{name} · auto: {bpm} BPM, first beat {offset}ms{noteTag}',
+                         zh: '{name} · 自动: {bpm} BPM,首拍 {offset}ms{noteTag}' },
+    'file.detected.note':{ en: ' · key ~{note}',       zh: ' · 调性 ~{note}' },
+    'file.failed':     { en: '{name} — auto-detect failed, set BPM manually',
+                         zh: '{name} — 自动检测失败,请手动设置 BPM' },
+    'launch.fail':     { en: 'Failed to start: ',     zh: '启动失败:' },
+  };
+  let lang = 'en';
+
+  // Format helper: replaces {name}, {bpm}, etc. tokens.
+  function tFmt(key, vars) {
+    const entry = tr[key];
+    if (!entry) return key;
+    let s = entry[lang] || entry.en || key;
+    if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(vars[k]);
+    return s;
+  }
+  function t(key) { return tFmt(key); }
+
+  function applyLang(code) {
+    lang = (code === 'zh') ? 'zh' : 'en';
+    // Update all static i18n elements
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      el.innerHTML = t(el.getAttribute('data-i18n-html'));
+    });
+    // Lang toggle visual state
+    langToggle.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('on', b.getAttribute('data-lang') === lang);
+    });
+    // Set document lang attribute (helps fonts / hyphenation)
+    document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+    // Re-render any dynamic strings that aren't covered by data-i18n.
+    // Guarded with try/catch: applyLang() runs once at module load before
+    // state vars (burstCharge, etc.) have been initialized, so calling
+    // updateBurstHud at that point would throw a TDZ error. Initial DOM
+    // already contains the English defaults, so skipping is harmless.
+    try { if (typeof updateBurstHud === 'function') updateBurstHud(); } catch (e) {}
+    try { if (typeof refreshFileLabel === 'function') refreshFileLabel(); } catch (e) {}
+  }
+  langToggle.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => applyLang(b.getAttribute('data-lang')));
+  });
+  // Initial apply (so default-EN strings get normalized through the same path)
+  applyLang('en');
+
+  // ----- State -----
+  let running     = false;
+  let bpm         = 139;
+  let beatMs      = 60000 / bpm;
+  let introOffMs  = 0;
+  let wPerfect    = 90;            // ms half-window
+  let wGood       = 180;
+  let wOk         = 270;
+  let score       = 0;
+  let combo       = 0;
+  let bestStreak  = 0;
+  let perfectStreak = 0;
+  // Burst special — two-tier:
+  //   burstCharge (0..BURST_FILL)  = in-progress meter. Reset to 0 by any
+  //                                   non-PERFECT player action. Hitting
+  //                                   BURST_FILL commits one stock.
+  //   burstStocks (0..BURST_STOCK_MAX) = banked ready-to-fire bursts. Each
+  //                                       right-click consumes one. Once
+  //                                       committed, a stock is permanent
+  //                                       (non-PERFECT clicks can never take
+  //                                       it back).
+  let burstCharge   = 0;
+  let burstStocks   = 0;
+  let burstActive   = false;       // true while a burst is in flight (suppresses re-trigger)
+  const BURST_FILL       = 5;      // consecutive PERFECTs needed to commit one stock
+  const BURST_STOCK_MAX  = 3;      // max banked bursts at once
+  const BURST_MAX        = 5;      // shots fired per activated burst
+  const MAX_TARGETS  = 5;          // bubbles on screen at the same time
+  const MAX_JUDGES   = 5;          // floating judgment-text cap, separate budget
+  const TARGET_RADIUS = 40;        // hit-test radius in px (bubble visual is ~80px wide)
+  const targets       = [];        // [{el, ring, x, y, hp}, ...]
+  const pendingShots      = [];        // [{x, y, fireMs, ring, target}, ...] resolve at next beat
+  const pendingBurstShots = [];        // 5-shot right-click special — auto-PERFECTs over the next 5 beats
+  let synthMode   = true;          // no audio file picked → use synth drum loop
+  let synthStartT = 0;             // ctx.currentTime at synth start
+  let lookAhead   = 0;             // index of next beat already scheduled (synth mode)
+
+  // ----- Audio context -----
+  let ctx, sfxBus, sfxComp, sfxMakeup, master;
+
+  function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    sfxComp = ctx.createDynamicsCompressor();
+    sfxComp.threshold.value = -14;        // lower threshold so the comp catches transients earlier
+    sfxComp.knee.value      = 6;          // softer knee for a smoother squash
+    sfxComp.ratio.value     = 8;          // a bit stronger ratio
+    sfxComp.attack.value    = 0.001;
+    sfxComp.release.value   = 0.08;
+    sfxBus    = ctx.createGain(); sfxBus.gain.value    = 3.4;   // pre-comp drive
+    sfxMakeup = ctx.createGain(); sfxMakeup.gain.value = 1.8;   // post-comp makeup — this is what actually makes SFX feel louder
+    master    = ctx.createGain(); master.gain.value    = 1.0;
+    // Chain: sources → sfxBus → comp → makeup → master → destination
+    sfxBus.connect(sfxComp).connect(sfxMakeup).connect(master).connect(ctx.destination);
+    // NOTE: the <audio> element plays through its OWN native output path.
+    // We deliberately do NOT call createMediaElementSource(bgm) — once that's
+    // done the element's native output is muted, and any subsequent reload
+    // (or auto-detect using a separate decode context) can leave it silent.
+    // Web Audio is only used here for the synthesized SFX bus and synth-mode beats.
+  }
+
+  // ----- Sound design -----
+
+  // Schedulable percussion-hit — plays AT `whenSec` (defaults to "now").
+  // Pure noise/transient stack, NO pitched oscillators. Functions as a drum
+  // accent on the beat: kick-body thump + snare-band crack + hat sizzle.
+  // ============================================================================
+  // Sound design philosophy:
+  //
+  // Two distinctly different drum sounds — players should be able to tell PERFECT
+  // from a resolved off-beat shot WITHOUT looking at the screen.
+  //
+  //   playGunshot()    → soft wood-block knock + bright tick. Competent, mild,
+  //                      "you did the timing alright" — not punchy. Used for
+  //                      off-beat clicks that resolve at the next beat.
+  //
+  //   playPerfectHit() → a full, layered "satisfying" drum hit. Sub punch +
+  //                      meaty body + snare snap + bright attack + metallic
+  //                      shimmer. Used for on-beat PERFECT clicks. On streak
+  //                      milestones (4, 8, …) adds a subtle echo tail that
+  //                      makes the hit feel wider — NO musical/tonal layer,
+  //                      so it never sounds out of key.
+  // ============================================================================
+  let songRootHz = 0; // 0 = no key detected yet; set by autoDetectBeat (still used elsewhere)
+
+  // ------ Off-beat resolve drum: soft wood knock + bright tick ------
+  function playGunshot(whenSec) {
+    if (!ctx) return;
+    const t = (whenSec == null) ? ctx.currentTime : Math.max(whenSec, ctx.currentTime);
+
+    // L1: wood-block knock — short bandpassed noise burst around 800 Hz,
+    //     gives a soft "tok" without low-end thunder.
+    const nbW = makeNoiseBuffer(0.06);
+    const nsW = ctx.createBufferSource(); nsW.buffer = nbW;
+    const bpW = ctx.createBiquadFilter();
+    bpW.type = 'bandpass'; bpW.frequency.value = 800; bpW.Q.value = 2.2;
+    const gW = ctx.createGain();
+    gW.gain.setValueAtTime(0, t);
+    gW.gain.linearRampToValueAtTime(0.7, t + 0.002);
+    gW.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    nsW.connect(bpW).connect(gW).connect(sfxBus);
+    nsW.start(t); nsW.stop(t + 0.07);
+
+    // L2: bright tick — very brief HP-filtered transient for clarity.
+    const nbT = makeNoiseBuffer(0.02);
+    const nsT = ctx.createBufferSource(); nsT.buffer = nbT;
+    const hpT = ctx.createBiquadFilter();
+    hpT.type = 'highpass'; hpT.frequency.value = 5000;
+    const gT = ctx.createGain();
+    gT.gain.setValueAtTime(0, t);
+    gT.gain.linearRampToValueAtTime(0.35, t + 0.001);
+    gT.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+    nsT.connect(hpT).connect(gT).connect(sfxBus);
+    nsT.start(t); nsT.stop(t + 0.03);
+  }
+
+  // ------ PERFECT drum: the "good hit" ------
+  function playPerfectHit(whenSec, streak) {
+    if (!ctx) return;
+    const t = (whenSec == null) ? ctx.currentTime : Math.max(whenSec, ctx.currentTime);
+
+    // L1: Deep sub punch — 90 → 28 Hz pitch-drop. Sits below most music so it
+    //     doesn't fight melodies; you feel it more than hear it. Slightly longer
+    //     decay than before makes the "thud" linger an extra moment.
+    const sub = ctx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(90, t);
+    sub.frequency.exponentialRampToValueAtTime(28, t + 0.09);
+    const subG = ctx.createGain();
+    subG.gain.setValueAtTime(0, t);
+    subG.gain.linearRampToValueAtTime(2.2, t + 0.003);
+    subG.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    sub.connect(subG).connect(sfxBus);
+    sub.start(t); sub.stop(t + 0.24);
+
+    // L2: Low body — bandpassed noise around 220 Hz, the "thud weight" region.
+    //     Pulled down from 350 Hz for a darker, chest-thump character.
+    const nbB = makeNoiseBuffer(0.12);
+    const nsB = ctx.createBufferSource(); nsB.buffer = nbB;
+    const bpB = ctx.createBiquadFilter();
+    bpB.type = 'bandpass'; bpB.frequency.value = 220; bpB.Q.value = 0.8;
+    const gB = ctx.createGain();
+    gB.gain.setValueAtTime(0, t);
+    gB.gain.linearRampToValueAtTime(1.6, t + 0.003);
+    gB.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    nsB.connect(bpB).connect(gB).connect(sfxBus);
+    nsB.start(t); nsB.stop(t + 0.13);
+
+    // L3: Low-mid tom — bandpassed noise around 1.3 kHz instead of 1.9 kHz.
+    //     Reads as a tom-tom rather than a snare; darker, more impactful.
+    const nbS = makeNoiseBuffer(0.10);
+    const nsS = ctx.createBufferSource(); nsS.buffer = nbS;
+    const bpS = ctx.createBiquadFilter();
+    bpS.type = 'bandpass'; bpS.frequency.value = 1300; bpS.Q.value = 0.9;
+    const gS = ctx.createGain();
+    gS.gain.setValueAtTime(0, t);
+    gS.gain.linearRampToValueAtTime(1.3, t + 0.002);
+    gS.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    nsS.connect(bpS).connect(gS).connect(sfxBus);
+    nsS.start(t); nsS.stop(t + 0.11);
+
+    // L4: Hard attack transient — slightly longer & louder than before, with the
+    //     filter pulled down to 5 kHz so it cracks more than it sizzles.
+    const nbA = makeNoiseBuffer(0.018);
+    const nsA = ctx.createBufferSource(); nsA.buffer = nbA;
+    const hpA = ctx.createBiquadFilter();
+    hpA.type = 'highpass'; hpA.frequency.value = 5000;
+    const gA = ctx.createGain();
+    gA.gain.setValueAtTime(0, t);
+    gA.gain.linearRampToValueAtTime(1.1, t + 0.0008);
+    gA.gain.exponentialRampToValueAtTime(0.0001, t + 0.022);
+    nsA.connect(hpA).connect(gA).connect(sfxBus);
+    nsA.start(t); nsA.stop(t + 0.025);
+
+    // L5: Tiny metallic shimmer — kept VERY quiet now so the low-end dominates.
+    //     Without this the hit sounds flat; with too much it gets glassy.
+    const shimmerFreqs = [3200, 5100, 7400];
+    const shimmerAmps  = [0.08, 0.05, 0.03];
+    const shimmerDec   = [0.10, 0.08, 0.06];
+    for (let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = shimmerFreqs[i];
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(shimmerAmps[i], t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + shimmerDec[i]);
+      o.connect(g).connect(sfxBus);
+      o.start(t); o.stop(t + shimmerDec[i] + 0.02);
+    }
+    // NOTE: streak 4 milestones no longer add a sound layer — they now trigger
+    //       an automatic bonus PERFECT shot via onShoot's caller; that bonus
+    //       fires its own playPerfectHit() and produces the doubled-hit feel
+    //       organically, locked to the next beat.
+  }
+
+  // Quiet "trigger click" — purely tactile, no musical content.
+  // Two layered short transients: a low woody knock + a soft top-end tick.
+  // Volume is intentionally ~1/8 of the gunshot so it doesn't fight the music.
+  function playTriggerClick() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+
+    // Low knock: 220 Hz triangle, near-instant decay
+    const k = ctx.createOscillator();
+    k.type = 'triangle';
+    k.frequency.setValueAtTime(220, t);
+    k.frequency.exponentialRampToValueAtTime(110, t + 0.025);
+    const kg = ctx.createGain();
+    kg.gain.setValueAtTime(0, t);
+    kg.gain.linearRampToValueAtTime(0.08, t + 0.001);
+    kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    k.connect(kg).connect(sfxBus);
+    k.start(t); k.stop(t + 0.04);
+
+    // Top tick: very short HP-filtered noise blip
+    const nb = makeNoiseBuffer(0.015);
+    const ns = ctx.createBufferSource(); ns.buffer = nb;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 4000;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.05, t);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+    ns.connect(hp).connect(ng).connect(sfxBus);
+    ns.start(t); ns.stop(t + 0.02);
+  }
+
+  function makeNoiseBuffer(seconds) {
+    const len = Math.floor(seconds * ctx.sampleRate);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  // Built-in drum loop (kick on 1, snare on 2/4, hat on every 8th).
+  // Scheduled lookahead-style relative to ctx.currentTime.
+  function scheduleSynthBeat(beatIdx, absT) {
+    const pos = beatIdx % 4; // 4/4
+    // Kick on every quarter (downbeats heaviest)
+    {
+      const osc = ctx.createOscillator(); osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, absT);
+      osc.frequency.exponentialRampToValueAtTime(40, absT + 0.16);
+      const g = ctx.createGain();
+      const amp = (pos === 0) ? 0.95 : 0.55;
+      g.gain.setValueAtTime(0, absT);
+      g.gain.linearRampToValueAtTime(amp, absT + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, absT + 0.20);
+      osc.connect(g).connect(master);
+      osc.start(absT); osc.stop(absT + 0.22);
+    }
+    // Snare on 2 & 4
+    if (pos === 1 || pos === 3) {
+      const nb = makeNoiseBuffer(0.18);
+      const ns = ctx.createBufferSource(); ns.buffer = nb;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 1.2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0, absT);
+      g.gain.linearRampToValueAtTime(0.55, absT + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, absT + 0.16);
+      ns.connect(bp).connect(g).connect(master);
+      ns.start(absT); ns.stop(absT + 0.18);
+    }
+    // Hat on every 8th (i.e., on beat and offbeat)
+    for (let h = 0; h < 2; h++) {
+      const ht = absT + (h * beatMs / 2) / 1000;
+      const nb = makeNoiseBuffer(0.04);
+      const ns = ctx.createBufferSource(); ns.buffer = nb;
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 7000;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, ht);
+      g.gain.linearRampToValueAtTime(0.18, ht + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, ht + 0.04);
+      ns.connect(hp).connect(g).connect(master);
+      ns.start(ht); ns.stop(ht + 0.05);
+    }
+    // Bass note (root pattern) — simple 4-step
+    {
+      const notes = [55, 55, 82.41, 73.42]; // A1, A1, E2, D2
+      const f = notes[pos];
+      const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+      osc.frequency.value = f;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 600; lp.Q.value = 2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, absT);
+      g.gain.linearRampToValueAtTime(0.18, absT + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, absT + beatMs / 1000 * 0.9);
+      osc.connect(lp).connect(g).connect(master);
+      osc.start(absT); osc.stop(absT + beatMs / 1000 * 0.95);
+    }
+  }
+
+  // ----- Beat math -----
+  // current music time in ms
+  function nowMusicMs() {
+    if (synthMode) return (ctx.currentTime - synthStartT) * 1000;
+    return bgm.currentTime * 1000;
+  }
+  // music-time of beat N
+  function beatTimeMs(n) { return introOffMs + n * beatMs; }
+  // index of nearest beat to `t` ms
+  function nearestBeat(t) {
+    return Math.round((t - introOffMs) / beatMs);
+  }
+
+  // ----- Target rendering -----
+  function judgeCount() { return fx.querySelectorAll('.judge').length; }
+
+  let spawnCounter = 0;
+  const HP_MAX = 100;
+
+  // Pick a random position that doesn't overlap any existing target too tightly.
+  function pickSpawnPos() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    const margin = 120;
+    const minSep = TARGET_RADIUS * 2.4;  // keep bubbles visually distinct
+    for (let tries = 0; tries < 24; tries++) {
+      spawnCounter++;
+      const seed  = (spawnCounter * 9301 + 49297) % 233280;
+      const seed2 = (spawnCounter * 4839 + 12345) % 99991;
+      const x = margin + (seed  / 233280) * (w - margin * 2);
+      const y = margin + (seed2 / 99991)  * (h - margin * 2 - 80);
+      let ok = true;
+      for (const t of targets) {
+        const dx = t.x - x, dy = t.y - y;
+        if (dx * dx + dy * dy < minSep * minSep) { ok = false; break; }
+      }
+      if (ok) return { x, y };
+    }
+    // give up, just return last candidate
+    return { x: margin + Math.random() * (w - margin * 2),
+             y: margin + Math.random() * (h - margin * 2 - 80) };
+  }
+
+  function spawnTarget() {
+    const { x, y } = pickSpawnPos();
+
+    // Sync animation phase to the music beat grid so every bubble peaks together
+    // on every beat, regardless of when it was spawned. CSS animation-delay
+    // with a NEGATIVE value pretends the animation started in the past — so we
+    // shift each bubble back by however far we are into the current beat cycle.
+    const tMs = nowMusicMs();
+    const phaseMs = ((tMs - introOffMs) % beatMs + beatMs) % beatMs;
+    const beatAnimDelay = (-phaseMs) + 'ms';
+
+    // Static target rim — the "judgment line" at scale-1.0 of the beat ring.
+    // Drawn first so it sits behind everything else in z-order, providing a
+    // fixed reference for the moving beat ring to land on.
+    const rim = document.createElement('div');
+    rim.className = 'target-rim';
+    rim.style.left = x + 'px';
+    rim.style.top  = y + 'px';
+    fx.appendChild(rim);
+
+    // Beat ring — rhythmic indicator, behind the bubble. Contracts toward the
+    // bubble in time with the music; touches the bubble exactly on each beat.
+    const bring = document.createElement('div');
+    bring.className = 'beat-ring';
+    bring.style.left = x + 'px';
+    bring.style.top  = y + 'px';
+    bring.style.setProperty('--beatms', beatMs + 'ms');
+    bring.style.animationDelay = beatAnimDelay;
+    fx.appendChild(bring);
+
+    // Target bubble — pulses on every beat via CSS animation tied to beatMs.
+    const el = document.createElement('div');
+    el.className = 'target beat';
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    el.style.setProperty('--beatms', beatMs + 'ms');
+    el.style.animationDelay = beatAnimDelay;
+    fx.appendChild(el);
+
+    // HP ring sibling — same anchor, conic gradient that depletes with --hp.
+    const ring = document.createElement('div');
+    ring.className = 'hp-ring';
+    ring.style.left = x + 'px';
+    ring.style.top  = y + 'px';
+    ring.style.setProperty('--hp', '100');
+    fx.appendChild(ring);
+
+    const tObj = { el, ring, bring, rim, x, y, hp: HP_MAX, dead: false };
+    targets.push(tObj);
+    return tObj;
+  }
+
+  function ensureTargets() {
+    if (nowMusicMs() <= 0) return;
+    while (targets.length < MAX_TARGETS) spawnTarget();
+  }
+
+  // Hit-test: which target is under (x, y), if any? Returns target or null.
+  function targetAt(x, y) {
+    for (const t of targets) {
+      if (t.dead) continue;
+      const dx = t.x - x, dy = t.y - y;
+      if (dx * dx + dy * dy <= TARGET_RADIUS * TARGET_RADIUS) return t;
+    }
+    return null;
+  }
+
+  // ----- Damage / kill -----
+  function damageTarget(t, amount) {
+    if (!t || t.dead) return false;
+    t.hp = Math.max(0, t.hp - amount);
+    t.ring.style.setProperty('--hp', t.hp.toString());
+    if (t.hp <= 0) { killTarget(t); return true; }
+    t.el.classList.remove('hit-flash');
+    void t.el.offsetWidth;
+    t.el.classList.add('hit-flash');
+    return false;
+  }
+
+  function killTarget(t) {
+    if (!t || t.dead) return;
+    t.dead = true;
+    t.el.classList.remove('beat');
+    t.el.classList.add('dying');
+    t.ring.style.transition = 'opacity 220ms ease-out';
+    t.ring.style.opacity = '0';
+    // Fade the beat-ring out too — without this, an indicator would hover
+    // for a moment around the empty space where a bubble just died.
+    if (t.bring) {
+      t.bring.style.transition = 'opacity 220ms ease-out';
+      t.bring.style.opacity = '0';
+    }
+    if (t.rim) {
+      t.rim.style.transition = 'opacity 220ms ease-out';
+      t.rim.style.opacity = '0';
+    }
+    setTimeout(() => {
+      t.el.remove();
+      t.ring.remove();
+      if (t.bring) t.bring.remove();
+      if (t.rim)   t.rim.remove();
+      const i = targets.indexOf(t);
+      if (i >= 0) targets.splice(i, 1);
+    }, 280);
+  }
+
+  // ----- Burst HUD updater -----
+  function updateBurstHud() {
+    // Progress pips (0..BURST_FILL): lit = charged toward the next stock
+    const pips = burstPips.querySelectorAll('.pip');
+    for (let i = 0; i < pips.length; i++) {
+      pips[i].classList.toggle('charged', i < burstCharge);
+    }
+    // Stock orbs (0..BURST_STOCK_MAX): lit = banked, ready to spend
+    const stocks = burstStocksEl.querySelectorAll('.stock');
+    for (let i = 0; i < stocks.length; i++) {
+      stocks[i].classList.toggle('full', i < burstStocks);
+    }
+    // States: ready when stocks > 0; active during a burst
+    burstBlock.classList.toggle('ready', burstStocks > 0 && !burstActive);
+    burstBlock.classList.toggle('active', burstActive);
+    if (burstActive)                          burstHint.textContent = t('burst.active');
+    else if (burstStocks >= BURST_STOCK_MAX)  burstHint.textContent = t('burst.max');
+    else if (burstStocks > 0)                 burstHint.textContent = t('burst.ready');
+    else                                       burstHint.textContent = tFmt('burst.progress', { n: burstCharge, max: BURST_FILL });
+  }
+
+  // ----- Judgment / feedback -----
+  // Judgments now only handle: score, combo, label text, audio feedback, FX.
+  // Killing the target is the damage system's job (PERFECT = one-shot, others chip HP).
+  function registerJudge(label, x, y) {
+    // Update score & combo
+    if (label === 'PERFECT') {
+      // Player-earned PERFECT: scores, extends streak, charges the burst meter.
+      // When the meter fills, COMMIT one stock (capped) and reset the meter
+      // so the next 5 PERFECTs can charge the next stock.
+      score += 100; combo += 1; perfectStreak += 1;
+      if (burstStocks < BURST_STOCK_MAX) {
+        burstCharge += 1;
+        if (burstCharge >= BURST_FILL) {
+          burstCharge = 0;
+          burstStocks += 1;
+        }
+      }
+      // If stocks are maxed, the meter just stays at 0 (no point charging
+      // further — the player should spend a stock first).
+    } else if (label === 'BONUS') {
+      // BONUS = one of the right-click special's auto-shots. Scores & extends
+      // visible streak so the special feels rewarding, but does NOT touch the
+      // burst meter or stocks at all (the burst can't perpetuate itself).
+      score += 100; combo += 1; perfectStreak += 1;
+    } else if (label === 'GOOD') {
+      // Non-PERFECT player action — IN-PROGRESS charge is lost. Already-committed
+      // stocks are safe; they don't drain.
+      score += 60; combo += 1; perfectStreak = 0; burstCharge = 0;
+    } else if (label === 'OK') {
+      score += 20; combo += 1; perfectStreak = 0; burstCharge = 0;
+    } else {
+      // MISS / OFF — same: kills in-progress charge, leaves stocks alone.
+      combo = 0; perfectStreak = 0; burstCharge = 0;
+    }
+    if (combo > bestStreak) bestStreak = combo;
+
+    scoreEl.textContent = score;
+    comboEl.textContent = combo;
+    bestEl.textContent  = bestStreak;
+    comboEl.classList.toggle('streak', perfectStreak >= 3);
+    updateBurstHud();
+
+    // Floating text — evict the oldest judge first if cap reached
+    while (judgeCount() >= MAX_JUDGES) {
+      const oldestJudge = fx.querySelector('.judge');
+      if (oldestJudge) oldestJudge.remove();
+      else break;
+    }
+    const txt = document.createElement('div');
+    txt.className = 'judge ' + label.toLowerCase().replace('miss','bad').replace('off','bad');
+    txt.style.left = x + 'px';
+    txt.style.top  = y + 'px';
+    txt.textContent = label;
+    fx.appendChild(txt);
+    setTimeout(() => txt.remove(), 820);
+
+    // Beat-bar marker hit feedback
+    if (lastMarker) {
+      lastMarker.classList.add('hit');
+      lastMarker = null;
+    }
+
+    if (label === 'PERFECT' || label === 'BONUS') {
+      perfectFeedback(x, y);
+    } else if (label === 'GOOD') {
+      smallFeedback(x, y, '#7df9c4');
+    } else if (label === 'OK') {
+      smallFeedback(x, y, '#74b9ff');
+    } else {
+      shakerKick('shake-tiny');
+    }
+  }
+
+  function perfectFeedback(x, y) {
+    // 1) Color pulse anchored at hit point
+    pulseEl.style.setProperty('--px', x + 'px');
+    pulseEl.style.setProperty('--py', y + 'px');
+    pulseEl.classList.remove('pulse-go');
+    void pulseEl.offsetWidth;
+    pulseEl.classList.add('pulse-go');
+
+    // 2) Two concentric rings
+    spawnRing(x, y, false);
+    spawnRing(x, y, true);
+
+    // 3) Particle sparks (radial burst)
+    const n = 14 + Math.min(perfectStreak, 10);
+    for (let i = 0; i < n; i++) {
+      const ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+      const dist = 60 + Math.random() * 90;
+      spawnSpark(x, y, ang, dist);
+    }
+
+    // 4) Screen shake — escalates with streak
+    if (perfectStreak >= 8)      shakerKick('shake-big', true);
+    else if (perfectStreak >= 4) shakerKick('shake-small', perfectStreak >= 6);
+    else                          shakerKick('shake-small', false);
+
+    // 5) PERFECT drum: the satisfying "good hit" — completely different from
+    //    the soft off-beat resolve.
+    playPerfectHit(null, perfectStreak);
+    // NOTE: target death is handled by resolvePendingShots() → damageTarget() → killTarget().
+    // Milestone bonus is scheduled by registerJudge, not here, so BONUS shots
+    // (which also pass through this function for the FX) don't trigger again.
+  }
+
+  function smallFeedback(x, y, color) {
+    const r = document.createElement('div');
+    r.className = 'ring';
+    r.style.left = x + 'px'; r.style.top = y + 'px';
+    r.style.borderColor = color;
+    fx.appendChild(r);
+    requestAnimationFrame(() => r.classList.add('go'));
+    setTimeout(() => r.remove(), 520);
+    shakerKick('shake-tiny');
+    // NOTE: target stays alive; damageTarget chipped HP and flashed it.
+  }
+
+  function spawnRing(x, y, inner) {
+    const r = document.createElement('div');
+    r.className = 'ring' + (inner ? ' inner' : '');
+    r.style.left = x + 'px'; r.style.top = y + 'px';
+    fx.appendChild(r);
+    requestAnimationFrame(() => r.classList.add('go'));
+    setTimeout(() => r.remove(), 560);
+  }
+
+  function spawnSpark(cx, cy, ang, dist) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.left = cx + 'px';
+    s.style.top  = cy + 'px';
+    const dx = Math.cos(ang) * dist;
+    const dy = Math.sin(ang) * dist;
+    const dur = 520 + Math.random() * 280;
+    s.style.transition = `transform ${dur}ms cubic-bezier(.1,.7,.2,1), opacity ${dur}ms ease-out`;
+    fx.appendChild(s);
+    requestAnimationFrame(() => {
+      s.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + 30}px)) scale(0.4)`;
+      s.style.opacity = '0';
+    });
+    setTimeout(() => s.remove(), dur + 50);
+  }
+
+  function shakerKick(cls, withChroma = false) {
+    shaker.classList.remove('shake-tiny', 'shake-small', 'shake-big', 'chroma');
+    void shaker.offsetWidth;
+    shaker.classList.add(cls);
+    if (withChroma) shaker.classList.add('chroma');
+  }
+
+  // ----- Beat bar -----
+  let lastMarker = null;
+  function updateBeatBar() {
+    const t = nowMusicMs();
+    // Show markers for the upcoming few beats. Map music-time to bar position:
+    // bar center = "now + half a beat" so the marker meets the center exactly
+    // when the music hits that beat.
+    // Use a window of ±1.5 beats around current time.
+    const windowMs = beatMs * 1.5;
+    // Update perfect-zone width on the bar (proportional to ±wPerfect / windowMs)
+    const wPct = (wPerfect / windowMs) * 50; // half-bar percentage
+    beatbar.style.setProperty('--perfect-w', wPct + '%');
+
+    // Re-render markers: simple — keep DOM cheap by reusing existing nodes
+    const startBeat = Math.floor((t - windowMs - introOffMs) / beatMs);
+    const endBeat   = Math.ceil ((t + windowMs - introOffMs) / beatMs);
+
+    // Remove markers that fell off the left
+    [...beatbar.querySelectorAll('.marker')].forEach(m => {
+      const b = +m.dataset.beat;
+      if (b < startBeat || b > endBeat + 1) {
+        m.remove();
+      }
+    });
+
+    // Ensure markers exist
+    for (let b = startBeat; b <= endBeat; b++) {
+      if (b < 1) continue;
+      let m = beatbar.querySelector(`.marker[data-beat="${b}"]`);
+      if (!m) {
+        m = document.createElement('div');
+        m.className = 'marker'; m.dataset.beat = b;
+        beatbar.appendChild(m);
+      }
+      const dt = beatTimeMs(b) - t; // ms until this beat
+      const pct = 50 + (dt / windowMs) * 50;
+      m.style.left = pct + '%';
+    }
+
+    // The "current shot target" marker is the beat nearest the bar center (i.e.
+    // the beat the next shot will be quantized to). Used so a click flashes the
+    // right marker even though targets are now persistent.
+    lastMarker = null;
+    const nearestB = Math.round((t - introOffMs) / beatMs);
+    if (nearestB >= 1) {
+      const m = beatbar.querySelector(`.marker[data-beat="${nearestB}"]`);
+      if (m) lastMarker = m;
+    }
+  }
+
+  // ----- Synth-mode beat scheduler -----
+  function pumpSynth() {
+    if (!synthMode) return;
+    const horizonSec = 0.25;
+    const tCtx = ctx.currentTime;
+    while (true) {
+      const beatAbsT = synthStartT + (introOffMs + lookAhead * beatMs) / 1000;
+      if (beatAbsT > tCtx + horizonSec) break;
+      scheduleSynthBeat(lookAhead, beatAbsT);
+      lookAhead++;
+    }
+  }
+
+  // ----- Main loop -----
+  function tick() {
+    if (!running) return;
+    if (synthMode) pumpSynth();
+    resolvePendingShots();
+    resolveBurstShots();
+    ensureTargets();
+    updateBeatBar();
+    requestAnimationFrame(tick);
+  }
+
+  // Resolve the 5-shot burst special: each shot one-shots a random surviving
+  // target and gets the full PERFECT scoring/FX (labeled BONUS so the meter
+  // visibly doesn't recharge from them). When the last shot fires, burstActive
+  // clears so the player can charge again.
+  function resolveBurstShots() {
+    if (pendingBurstShots.length === 0) return;
+    const tMs = nowMusicMs();
+    for (let i = pendingBurstShots.length - 1; i >= 0; i--) {
+      const p = pendingBurstShots[i];
+      if (tMs >= p.fireMs) {
+        pendingBurstShots.splice(i, 1);
+        const alive = targets.filter(t => !t.dead);
+        if (alive.length > 0) {
+          const t = alive[Math.floor(Math.random() * alive.length)];
+          damageTarget(t, HP_MAX);
+          registerJudge('BONUS', t.x, t.y);
+        } else {
+          // No targets alive — still play the drum so the rhythm stays consistent.
+          playPerfectHit(null, perfectStreak);
+        }
+        if (p.last) {
+          burstActive = false;
+          updateBurstHud();
+        }
+      }
+    }
+  }
+
+  // Right-click special: spend one banked stock to fire 5 PERFECT auto-shots
+  // as a rapid sixteenth-note roll. Each shot still lands on a quantized grid
+  // point so the whole burst stays musically locked. Locks `burstActive` until
+  // the last shot resolves so two stocks can't overlap on the same beats.
+  const BURST_STRIDE = 0.25;            // 1/4 beat = sixteenth note. 1 = whole beats, 0.5 = eighth notes.
+  function triggerBurst() {
+    if (!running) return;
+    if (burstActive) return;
+    if (burstStocks < 1) return;
+    burstStocks -= 1;
+    burstActive = true;
+    updateBurstHud();
+
+    const tMs = nowMusicMs();
+    const beatF = (tMs - introOffMs) / beatMs;
+    // Start at the next sixteenth-note grid point after now (so the very first
+    // shot still arrives crisply on a subdivision, not "instantly").
+    const stridesNow   = beatF / BURST_STRIDE;
+    const startStride  = Math.ceil(stridesNow + 0.05);   // +epsilon avoids scheduling at the past
+    for (let k = 0; k < BURST_MAX; k++) {
+      const fireMs = (startStride + k) * BURST_STRIDE * beatMs + introOffMs;
+      pendingBurstShots.push({ fireMs, last: k === BURST_MAX - 1 });
+    }
+  }
+
+  // Resolve pending shots whose fire time has been reached.
+  function resolvePendingShots() {
+    if (pendingShots.length === 0) return;
+    const tMs  = nowMusicMs();
+    const tCtx = ctx.currentTime;
+    for (let i = pendingShots.length - 1; i >= 0; i--) {
+      const p = pendingShots[i];
+      if (tMs >= p.fireMs) {
+        // FIRE! Play hit-drum at the beat time (which is "now" or just past).
+        playGunshot(tCtx);
+        // Burst the charging ring
+        if (p.ring && p.ring.parentNode) {
+          p.ring.style.transition = 'transform 220ms ease-out, opacity 220ms ease-out';
+          p.ring.style.transform  = 'translate(-50%,-50%) scale(3.2)';
+          p.ring.style.opacity    = '0';
+          const r = p.ring;
+          setTimeout(() => r.remove(), 240);
+        }
+        // Apply damage to whichever target is at the click position (if any).
+        const t = targetAt(p.x, p.y);
+        if (t) {
+          damageTarget(t, p.dmg);
+          registerJudge(p.label, t.x, t.y);
+        } else {
+          // No bubble there → silent miss (no judgment text, but the drum still landed on the beat).
+          if (p.label === 'PERFECT' || p.label === 'GOOD' || p.label === 'OK') {
+            // Player timed it well but missed the target spatially — show a muted MISS so they know.
+            registerJudge('MISS', p.x, p.y);
+          }
+        }
+        pendingShots.splice(i, 1);
+      }
+    }
+  }
+
+  // ----- Input handling -----
+  function onShoot(ev) {
+    if (!running) return;
+    const rect = stage.getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const y = ev.clientY - rect.top;
+
+    // Always play the quiet trigger click immediately — pure tactile, no music content.
+    playTriggerClick();
+
+    const tMs   = nowMusicMs();
+    const beatF = (tMs - introOffMs) / beatMs;
+    const dtBeats = beatF - Math.round(beatF);
+    const dtMs    = Math.abs(dtBeats * beatMs);
+
+    // Classify timing
+    let label, dmg;
+    if (dtMs <= wPerfect)    { label = 'PERFECT'; dmg = HP_MAX; }
+    else if (dtMs <= wGood)  { label = 'GOOD';    dmg = 50; }
+    else if (dtMs <= wOk)    { label = 'OK';      dmg = 25; }
+    else                     { label = 'OFF';     dmg = 5;  }
+
+    if (label === 'PERFECT') {
+      // ON THE BEAT: damage resolves NOW. perfectFeedback() (via registerJudge)
+      // plays playPerfectHit with the current streak — DON'T call playGunshot here
+      // or we'd double the drum.
+      const t = targetAt(x, y);
+      if (t) {
+        damageTarget(t, dmg);
+        registerJudge('PERFECT', t.x, t.y);
+      } else {
+        // Clicked empty space ON the beat — your timing was right, you just
+        // missed spatially. Play the satisfying drum at neutral streak so the
+        // beat is still felt; don't touch score/streak.
+        playPerfectHit(null, 0);
+      }
+    } else {
+      // OFF THE BEAT: queue a pending shot that resolves at the NEXT beat.
+      const beatT = (Math.round(beatF) + (dtBeats >= 0 ? 1 : 0)) * beatMs + introOffMs;
+      // ^ if click was after the nearest beat, fire on the next beat;
+      //   if click was before the nearest beat (dtBeats < 0), the nearest beat IS the next one.
+      const waitMs = beatT - tMs;
+      const ring = document.createElement('div');
+      ring.className = 'pending';
+      ring.style.left = x + 'px';
+      ring.style.top  = y + 'px';
+      fx.appendChild(ring);
+      // Animate the ring growing to the moment of the beat
+      // Final scale ~4.5× = 90px radius — a clear visual "this is when it'll fire"
+      const dur = Math.max(40, Math.min(waitMs, beatMs * 1.5));
+      ring.style.transition = `transform ${dur}ms linear, border-color ${dur}ms linear`;
+      requestAnimationFrame(() => {
+        ring.style.transform = 'translate(-50%,-50%) scale(4.2)';
+        // Tint the ring by accuracy so the player can read their timing while it grows
+        if (label === 'GOOD') ring.style.borderColor = 'rgba(125,249,196,0.9)';
+        else if (label === 'OK') ring.style.borderColor = 'rgba(116,185,255,0.9)';
+        else                     ring.style.borderColor = 'rgba(255,107,138,0.9)';
+      });
+
+      pendingShots.push({ x, y, fireMs: beatT, ring, dmg, label });
+    }
+  }
+
+  stage.addEventListener('mousedown', (ev) => {
+    if (overlay.style.display !== 'none') return;
+    if (ev.button === 0) {
+      ev.preventDefault();
+      onShoot(ev);
+    } else if (ev.button === 2) {
+      // Right-click → fire the burst special if charged
+      ev.preventDefault();
+      triggerBurst();
+    }
+  });
+  stage.addEventListener('contextmenu', e => e.preventDefault());
+  stage.addEventListener('mousemove', (ev) => {
+    const r = stage.getBoundingClientRect();
+    ch.style.left = (ev.clientX - r.left) + 'px';
+    ch.style.top  = (ev.clientY - r.top)  + 'px';
+  });
+
+  // ----- Settings UI plumbing -----
+
+  // Apply a BPM value and refresh ALL the UI (used by slider events and by
+  // auto-detect, where we own the value end-to-end). The number input has its
+  // own gentler handler so typing isn't disrupted mid-keystroke.
+  function syncBpm(v) {
+    v = Math.max(40, Math.min(240, +v || 139));
+    bpm = v;
+    beatMs = 60000 / bpm;
+    bpmInp.value = v;
+    bpmRng.value = v;
+    bpmOut.textContent = v;
+  }
+
+  // While typing in the number field, accept the value only if it's a valid
+  // in-range integer; otherwise just leave everything alone (don't reset to
+  // 40 / 240 / 139 mid-keystroke, which would yank the user's cursor away
+  // and make the field unusable). Crucially: never write to bpmInp.value here.
+  bpmInp.addEventListener('input', () => {
+    const raw = bpmInp.value.trim();
+    if (raw === '') return;                  // user is clearing — wait
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return;         // junk — wait
+    if (n < 40 || n > 240) return;            // out of range — wait for them to finish
+    bpm = n;
+    beatMs = 60000 / bpm;
+    bpmRng.value = n;
+    bpmOut.textContent = n;
+  });
+  // On blur / Enter, force the value into range (this is when "jumping to 40"
+  // is actually OK — the user has finished editing).
+  bpmInp.addEventListener('change', () => syncBpm(bpmInp.value));
+
+  // Slider always emits in-range values, so full sync is fine.
+  bpmRng.addEventListener('input', () => syncBpm(bpmRng.value));
+
+  offRng.addEventListener('input', () => {
+    introOffMs = +offRng.value;
+    offOut.textContent = introOffMs;
+  });
+
+  winRng.addEventListener('input', () => {
+    wPerfect = +winRng.value;
+    wGood    = wPerfect * 2;
+    wOk      = wPerfect * 3;
+    winOut.textContent = '±' + wPerfect + 'ms';
+  });
+
+  // ----- Auto beat detection for uploaded songs -----
+  // Heuristic pipeline:
+  //   1. Decode first ~30s of audio to mono float at the file's native sample rate.
+  //   2. Compute a spectral-flux onset envelope (STFT magnitude positive-diff,
+  //      summed across bins). Hop ≈ 11 ms is fine for tempos < 200 BPM.
+  //   3. Subtract a running mean (DC removal) so steady tones don't bias autocorr.
+  //   4. Autocorrelate at integer lags corresponding to BPM ∈ [70, 180]; pick max.
+  //      Handle the half/double-tempo ambiguity by preferring the result in
+  //      [85, 175] when the score is close.
+  //   5. With period locked, phase-scan offset ∈ [0, period) at ~5 ms resolution
+  //      to find where the beat grid best lines up with the envelope.
+  async function autoDetectBeat(file) {
+    // (Caller has already set fileLabelState to 'analyzing'.)
+
+    // Decode
+    const buf = await file.arrayBuffer();
+    // Create a throwaway context just for decoding (sample rate doesn't matter much).
+    const TmpCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    // Use a temporary AudioContext for decoding — broadest browser support
+    const tmpAC = new (window.AudioContext || window.webkitAudioContext)();
+    let audio;
+    try {
+      audio = await tmpAC.decodeAudioData(buf.slice(0));
+    } catch (e) {
+      tmpAC.close();
+      throw e;
+    }
+
+    // Take up to 30s, mix to mono
+    const sr = audio.sampleRate;
+    const N  = Math.min(audio.length, Math.floor(sr * 30));
+    const mono = new Float32Array(N);
+    const chs = audio.numberOfChannels;
+    for (let c = 0; c < chs; c++) {
+      const d = audio.getChannelData(c);
+      for (let i = 0; i < N; i++) mono[i] += d[i] / chs;
+    }
+    tmpAC.close();
+
+    // Hop / frame in samples — target ~11 ms hop
+    const hop   = Math.max(128, Math.round(sr * 0.011));
+    const frame = hop * 4;                  // ~44 ms window
+    const nFrames = Math.floor((N - frame) / hop);
+    // Spectral flux via squared-magnitude difference of low-pass-folded energy
+    // We approximate STFT with a much cheaper bandwise energy diff:
+    //   split each frame into 16 log-spaced bands by IIR, sum |x|^2,
+    //   then take positive diffs frame-to-frame across bands and sum.
+    // For simplicity & speed in browsers we instead use plain energy-flux on
+    // the rectified, half-wave-differentiated signal — adequate for percussive
+    // beat detection in pop/electronic music.
+    const flux = new Float32Array(nFrames);
+    let prevEnergy = 0;
+    for (let f = 0; f < nFrames; f++) {
+      const off = f * hop;
+      let e = 0;
+      for (let i = 0; i < frame; i++) {
+        const x = mono[off + i];
+        e += x * x;
+      }
+      const diff = e - prevEnergy;
+      flux[f] = diff > 0 ? diff : 0;
+      prevEnergy = e;
+    }
+    // DC-remove with a 1-second running mean
+    const winSize = Math.max(8, Math.round(1.0 / (hop / sr)));
+    let sum = 0;
+    for (let i = 0; i < Math.min(winSize, nFrames); i++) sum += flux[i];
+    const flux2 = new Float32Array(nFrames);
+    for (let i = 0; i < nFrames; i++) {
+      const lo = Math.max(0, i - (winSize >> 1));
+      const hi = Math.min(nFrames - 1, i + (winSize >> 1));
+      // approximate running mean (recompute every 16 samples for speed)
+      if ((i & 15) === 0) {
+        sum = 0;
+        for (let k = lo; k <= hi; k++) sum += flux[k];
+      }
+      const mean = sum / (hi - lo + 1);
+      flux2[i] = Math.max(0, flux[i] - mean);
+    }
+
+    // Autocorrelation at integer-frame lags corresponding to BPM 70..180
+    const frameSec = hop / sr;
+    const minBPM = 70, maxBPM = 180;
+    const minLag = Math.floor(60 / maxBPM / frameSec);
+    const maxLag = Math.ceil (60 / minBPM / frameSec);
+    let bestLag = minLag, bestScore = -Infinity;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      let s = 0, n = nFrames - lag;
+      for (let i = 0; i < n; i++) s += flux2[i] * flux2[i + lag];
+      // Slight preference for "musical" tempos (downweight extremes)
+      const bpmHere = 60 / (lag * frameSec);
+      const tilt = 1 - Math.min(1, Math.abs(bpmHere - 120) / 100) * 0.05;
+      s *= tilt;
+      if (s > bestScore) { bestScore = s; bestLag = lag; }
+    }
+    let bpmDetect = 60 / (bestLag * frameSec);
+
+    // Octave correction: if BPM looks too slow/fast, see if 2× or ½× score competes.
+    function scoreAtLag(lag) {
+      if (lag < 4 || lag >= nFrames - 1) return -Infinity;
+      let s = 0, n = nFrames - lag;
+      for (let i = 0; i < n; i++) s += flux2[i] * flux2[i + lag];
+      return s;
+    }
+    if (bpmDetect < 90) {
+      const halfLag = Math.round(bestLag / 2);
+      if (scoreAtLag(halfLag) > bestScore * 0.85) { bestLag = halfLag; bpmDetect = 60 / (bestLag * frameSec); }
+    } else if (bpmDetect > 170) {
+      const dblLag = bestLag * 2;
+      if (scoreAtLag(dblLag) > bestScore * 0.85) { bestLag = dblLag; bpmDetect = 60 / (bestLag * frameSec); }
+    }
+
+    // Sub-frame refinement: parabolic interpolation on the autocorrelation
+    // around bestLag gives a fractional-lag peak, which fixes the systematic
+    // ~1 BPM rounding error caused by integer-frame quantization. Without
+    // this step, hop ≈ 11 ms means each integer lag step is ~3 BPM apart in
+    // the 120-BPM region, so the best the search can do is round to the
+    // nearest 3 BPM grid point — we then snap to a clean integer at the end.
+    {
+      const y0 = scoreAtLag(bestLag - 1);
+      const y1 = scoreAtLag(bestLag);
+      const y2 = scoreAtLag(bestLag + 1);
+      const denom = (y0 - 2 * y1 + y2);
+      let refinedLag = bestLag;
+      if (isFinite(y0) && isFinite(y2) && Math.abs(denom) > 1e-12) {
+        const delta = 0.5 * (y0 - y2) / denom;
+        // Only trust the interpolation if |delta| < 1 — otherwise the peak
+        // isn't actually at bestLag and the parabola is a poor fit.
+        if (Math.abs(delta) < 1) refinedLag = bestLag + delta;
+      }
+      bpmDetect = 60 / (refinedLag * frameSec);
+    }
+    bpmDetect = Math.round(bpmDetect);
+
+    // Phase scan: with the period locked, search offset in samples-of-frames
+    // covering [0, period), at frame resolution. For each candidate phase,
+    // sum flux2 at all grid positions; the phase with highest sum wins.
+    const period = bestLag;                 // in frames
+    let bestPhase = 0, bestPhaseScore = -Infinity;
+    for (let phase = 0; phase < period; phase++) {
+      let s = 0, count = 0;
+      for (let k = phase; k < nFrames; k += period) { s += flux2[k]; count++; }
+      const avg = s / Math.max(1, count);
+      if (avg > bestPhaseScore) { bestPhaseScore = avg; bestPhase = phase; }
+    }
+    // Refine ±period/4 at sample resolution by looking at the actual mono signal's
+    // local energy peak near the candidate. Cheap: scan a window for the loudest sample.
+    let firstBeatSec = bestPhase * frameSec;
+    const refineSamples = Math.floor(period * frameSec * 0.25 * sr);
+    const startS = Math.max(0, Math.floor(firstBeatSec * sr) - refineSamples);
+    const endS   = Math.min(N - 1, Math.floor(firstBeatSec * sr) + refineSamples);
+    let bestS = Math.floor(firstBeatSec * sr), bestAmp = -Infinity;
+    // 10ms running RMS for refinement
+    const rmsWin = Math.max(32, Math.round(sr * 0.01));
+    let rms = 0;
+    for (let i = startS; i < Math.min(startS + rmsWin, endS); i++) rms += mono[i] * mono[i];
+    for (let i = startS + rmsWin; i < endS; i++) {
+      rms += mono[i] * mono[i] - mono[i - rmsWin] * mono[i - rmsWin];
+      if (rms > bestAmp) { bestAmp = rms; bestS = i - (rmsWin >> 1); }
+    }
+    firstBeatSec = Math.max(0, bestS / sr);
+    const firstBeatMs = Math.round(firstBeatSec * 1000);
+
+    // ---- Pitch / key detection ----
+    // Sample a handful of beat positions, lowpass-filter to isolate the bass,
+    // and autocorrelate to find the dominant fundamental. Take the median Hz.
+    // This won't pin the song's exact key, but it'll lock onto whatever pitched
+    // content dominates the low end — enough for our tonal layer to feel "in key".
+    //
+    // Simple 1-pole lowpass: y[n] = a*y[n-1] + (1-a)*x[n], cutoff ~300 Hz.
+    const cutoffHz = 300;
+    const a = Math.exp(-2 * Math.PI * cutoffHz / sr);
+    const bassed = new Float32Array(N);
+    {
+      let y = 0;
+      for (let i = 0; i < N; i++) { y = a * y + (1 - a) * mono[i]; bassed[i] = y; }
+    }
+    // Pitch search range: 50–500 Hz (covers low E1 ≈ 41 to roughly B4 ≈ 494).
+    const minHz = 50, maxHz = 500;
+    const minPeriod = Math.floor(sr / maxHz);
+    const maxPeriod = Math.ceil (sr / minHz);
+    const winSec = 0.35;                                  // ~ a beat or two
+    const winLen = Math.min(N, Math.floor(sr * winSec));
+
+    function pitchAt(startSample) {
+      const off = Math.max(0, Math.min(N - winLen - 1, startSample));
+      // Normalized autocorrelation (NSDF-style numerator/denominator).
+      let bestPer = minPeriod, bestVal = -1;
+      let denomFixed = 0;
+      for (let i = 0; i < winLen; i++) denomFixed += bassed[off + i] * bassed[off + i];
+      if (denomFixed < 1e-9) return 0;
+      for (let p = minPeriod; p <= maxPeriod; p++) {
+        let num = 0, d2 = 0;
+        for (let i = 0; i < winLen - p; i++) {
+          num += bassed[off + i] * bassed[off + i + p];
+          d2  += bassed[off + i + p] * bassed[off + i + p];
+        }
+        const denom = Math.sqrt(denomFixed * d2);
+        if (denom < 1e-9) continue;
+        const v = num / denom;
+        // Prefer the smallest period meeting a high threshold, to avoid octave errors.
+        // But still keep the best-so-far if no winner emerges.
+        if (v > bestVal) { bestVal = v; bestPer = p; }
+      }
+      // Quadratic interpolation around bestPer for sub-sample precision
+      if (bestPer > minPeriod && bestPer < maxPeriod) {
+        const acAt = (p) => {
+          let n = 0;
+          for (let i = 0; i < winLen - p; i++) n += bassed[off + i] * bassed[off + i + p];
+          return n;
+        };
+        const y0 = acAt(bestPer - 1), y1 = acAt(bestPer), y2 = acAt(bestPer + 1);
+        const denom2 = (y0 - 2 * y1 + y2);
+        if (Math.abs(denom2) > 1e-9) {
+          const delta = 0.5 * (y0 - y2) / denom2;
+          if (Math.abs(delta) < 1) bestPer += delta;
+        }
+      }
+      return bestVal > 0.4 ? (sr / bestPer) : 0;
+    }
+    // Sample several beat positions (first 8 detected beats), collect non-zero pitches
+    const hzList = [];
+    for (let k = 0; k < 8; k++) {
+      const s = Math.floor((firstBeatSec + k * (period * frameSec)) * sr);
+      if (s >= N - winLen) break;
+      const hz = pitchAt(s);
+      if (hz > 0) hzList.push(hz);
+    }
+    let songHz = 0;
+    if (hzList.length > 0) {
+      // Reduce to a common octave (e.g. between 80 and 160 Hz) before averaging
+      // to avoid octave-mismatch dragging the mean.
+      const folded = hzList.map(h => {
+        while (h > 160) h /= 2;
+        while (h < 80)  h *= 2;
+        return h;
+      }).sort((a, b) => a - b);
+      // Median for robustness
+      songHz = folded[Math.floor(folded.length / 2)];
+      // Snap to nearest equal-tempered semitone using A4 = 440
+      const semis = Math.round(12 * Math.log2(songHz / 440));
+      songHz = 440 * Math.pow(2, semis / 12);
+    }
+
+    return { bpm: bpmDetect, offsetMs: firstBeatMs, period, confidence: bestScore, rootHz: songHz };
+  }
+
+  // Track the current file-label state so refreshFileLabel() can re-render it
+  // in any language. The actual translated text is built from `tr` on demand.
+  let fileLabelState = { kind: 'default' };  // 'default' | 'analyzing' | 'detected' | 'failed'
+  function refreshFileLabel() {
+    const s = fileLabelState;
+    if (s.kind === 'default')        fileLbl.textContent = t('file.default');
+    else if (s.kind === 'analyzing') fileLbl.textContent = tFmt('file.analyzing', { name: s.name });
+    else if (s.kind === 'detected')  {
+      const noteTag = s.note ? tFmt('file.detected.note', { note: s.note }) : '';
+      fileLbl.textContent = tFmt('file.detected', { name: s.name, bpm: s.bpm, offset: s.offset, noteTag });
+    }
+    else if (s.kind === 'failed')    fileLbl.textContent = tFmt('file.failed', { name: s.name });
+  }
+
+  let userFileURL = null;
+  fileInp.addEventListener('change', async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) {
+      fileLabelState = { kind: 'default' };
+      refreshFileLabel();
+      if (userFileURL) { URL.revokeObjectURL(userFileURL); userFileURL = null; }
+      bgm.src = '';
+      synthMode = true;
+      songRootHz = 0;
+      return;
+    }
+    if (userFileURL) URL.revokeObjectURL(userFileURL);
+    userFileURL = URL.createObjectURL(f);
+    bgm.src = userFileURL;
+    fileLabelState = { kind: 'analyzing', name: f.name };
+    refreshFileLabel();
+    synthMode = false;
+
+    try {
+      const r = await autoDetectBeat(f);
+      syncBpm(r.bpm);
+      introOffMs = r.offsetMs;
+      offRng.value = r.offsetMs;
+      offOut.textContent = r.offsetMs;
+      songRootHz = r.rootHz || 0;
+      // Pretty-print the detected note name if we got one
+      let note = '';
+      if (songRootHz > 0) {
+        const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const semis = Math.round(12 * Math.log2(songRootHz / 440));
+        const idx = ((semis % 12) + 12 + 9) % 12;
+        const octave = 4 + Math.floor((semis + 9) / 12);
+        note = names[idx] + octave;
+      }
+      fileLabelState = { kind: 'detected', name: f.name, bpm: r.bpm, offset: r.offsetMs, note };
+      refreshFileLabel();
+    } catch (e) {
+      console.error('Auto-detect failed:', e);
+      fileLabelState = { kind: 'failed', name: f.name };
+      refreshFileLabel();
+    }
+  });
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    try {
+      initAudio();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      if (synthMode) {
+        synthStartT = ctx.currentTime + 0.05;
+        lookAhead = 0;
+      } else {
+        bgm.currentTime = 0;
+        bgm.volume = 0.85;
+        await bgm.play();
+      }
+
+      overlay.style.display = 'none';
+      resetBtn.style.display = '';
+      running = true;
+      score = 0; combo = 0; perfectStreak = 0;
+      burstCharge = 0; burstStocks = 0; burstActive = false;
+      targets.length = 0;
+      pendingShots.length = 0;
+      pendingBurstShots.length = 0;
+      scoreEl.textContent = 0; comboEl.textContent = 0;
+      updateBurstHud();
+      tick();
+    } catch (err) {
+      console.error(err);
+      alert(t('launch.fail') + err.message);
+      startBtn.disabled = false;
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    running = false;
+    if (!synthMode) { bgm.pause(); bgm.currentTime = 0; }
+    [...fx.querySelectorAll('.target,.judge,.ring,.spark,.hp-ring,.pending,.beat-ring,.target-rim')].forEach(n => n.remove());
+    [...beatbar.querySelectorAll('.marker')].forEach(n => n.remove());
+    targets.length = 0;
+    pendingShots.length = 0;
+    pendingBurstShots.length = 0;
+    burstCharge = 0; burstStocks = 0; burstActive = false;
+    updateBurstHud();
+    overlay.style.display = '';
+    resetBtn.style.display = 'none';
+    startBtn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
